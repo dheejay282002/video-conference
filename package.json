@@ -2,7 +2,6 @@
   "name": "video-conference",
   "private": true,
   "scripts": {
-    "vercel-build": "cd client && npm install && npm run build"
-  },
-  "dependencies": {}
+    "build": "cd client && npm install && npm run build"
+  }
 }
