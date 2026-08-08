@@ -1,90 +1,88 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
-import { X, Send } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
+import { Send, X } from 'lucide-react';
 
-const Chat = ({ messages, onSendMessage, onClose }) => {
+const ChatPanel = ({ roomCode, onClose }) => {
+  const { user } = useAuth();
+  const { socket } = useSocket();
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
-  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit('join-room', roomCode);
+    socket.on('chat-message', (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+    return () => { socket.off('chat-message'); };
+  }, [socket, roomCode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (e) => {
+  const handleSendMessage = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-
     const message = {
-      id: Date.now(),
-      sender: user?.displayName || 'Anonymous',
-      senderAvatar: user?.avatar,
+      sender: user.displayName,
+      senderId: user._id,
       text: newMessage.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-
-    onSendMessage(message);
+    socket.emit('chat-message', { roomCode, message });
+    setMessages((prev) => [...prev, message]);
     setNewMessage('');
   };
 
   return (
-    <div className="flex flex-col h-full bg-zoom-darker border-l border-gray-700">
+    <div className="h-full flex flex-col bg-surface-0">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        <h3 className="font-semibold">Chat</h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-700 rounded">
-          <X className="w-5 h-5" />
-        </button>
+      <div className="h-14 flex items-center justify-between px-4 border-b border-surface-200/60 flex-shrink-0">
+        <h3 className="text-sm font-semibold">Chat</h3>
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-100 rounded-lg transition-all">
+            <X className="w-4 h-4 text-surface-500" />
+          </button>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <p>No messages yet</p>
-            <p className="text-sm">Start the conversation!</p>
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-surface-400 text-sm">No messages yet. Say hello!</p>
           </div>
-        ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="flex gap-3">
-              <div className="w-8 h-8 bg-zoom-blue rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
-                {msg.senderAvatar ? (
-                  <img src={msg.senderAvatar} alt="" className="w-full h-full rounded-full" />
-                ) : (
-                  msg.sender?.charAt(0)
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold text-sm">{msg.sender}</span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <p className="text-gray-300 mt-1">{msg.text}</p>
-              </div>
-            </div>
-          ))
         )}
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex flex-col gap-1 ${msg.senderId === user?._id ? 'items-end' : 'items-start'}`}>
+            <span className="text-[10px] font-medium text-surface-400 px-1">{msg.sender}</span>
+            <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              msg.senderId === user?._id
+                ? 'bg-brand-600 text-white rounded-br-md'
+                : 'bg-surface-100 text-surface-800 rounded-bl-md border border-surface-200/60'
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-4 border-t border-gray-700">
+      <form onSubmit={handleSendMessage} className="p-3 border-t border-surface-200/60 flex-shrink-0">
         <div className="flex gap-2">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-zoom-dark border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-zoom-blue"
+            className="flex-1 bg-surface-50 border border-surface-200 text-surface-900 rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 placeholder:text-surface-400"
           />
-          <button
-            type="submit"
-            disabled={!newMessage.trim()}
-            className="p-2 bg-zoom-blue rounded-lg hover:bg-zoom-blue-hover disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send className="w-5 h-5" />
+          <button type="submit" className="w-10 h-10 bg-brand-600 hover:bg-brand-500 rounded-xl flex items-center justify-center transition-all text-white shadow-sm">
+            <Send className="w-4 h-4" />
           </button>
         </div>
       </form>
@@ -92,4 +90,4 @@ const Chat = ({ messages, onSendMessage, onClose }) => {
   );
 };
 
-export default Chat;
+export default ChatPanel;

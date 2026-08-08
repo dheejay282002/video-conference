@@ -1,57 +1,51 @@
 ﻿import React from 'react';
 
-const Skeleton = ({ className = '', count = 1 }) => {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className={`animate-pulse bg-gray-700/50 rounded ${className}`}
-        />
-      ))}
-    </>
-  );
-};
+const Skeleton = ({ className = '', count = 1 }) => (
+  <>
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className={`animate-pulse bg-surface-200 rounded-xl ${className}`} />
+    ))}
+  </>
+);
 
 export const SkeletonCard = () => (
-  <div className="bg-zoom-darker p-6 rounded-2xl border border-gray-700 space-y-4">
+  <div className="card space-y-4">
     <div className="flex items-center gap-4">
-      <Skeleton className="w-16 h-16 rounded-2xl" />
-      <div className="space-y-2">
+      <Skeleton className="w-14 h-14 rounded-2xl flex-shrink-0" />
+      <div className="space-y-2.5 flex-1">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-4 w-48" />
       </div>
     </div>
-    <Skeleton className="h-10 w-full rounded-lg" />
-    <Skeleton className="h-10 w-full rounded-lg" />
+    <Skeleton className="h-12 w-full rounded-xl" />
+    <Skeleton className="h-12 w-full rounded-xl" />
   </div>
 );
 
 export const SkeletonDashboard = () => (
-  <div className="min-h-screen bg-zoom-dark">
+  <div className="min-h-screen bg-surface-0">
     {/* Nav skeleton */}
-    <div className="bg-zoom-darker border-b border-gray-700 px-4 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Skeleton className="w-8 h-8 rounded-lg" />
-          <Skeleton className="h-7 w-28" />
+    <div className="h-16 border-b border-surface-200/60 bg-surface-0/80 backdrop-blur-2xl">
+      <div className="page-container h-full flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-surface-200 rounded-xl animate-pulse" />
+          <div className="h-5 w-20 bg-surface-200 rounded-lg animate-pulse" />
         </div>
         <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-20 rounded-lg" />
-          <Skeleton className="w-8 h-8 rounded-full" />
+          <div className="h-10 w-32 bg-surface-200 rounded-xl animate-pulse" />
         </div>
       </div>
     </div>
 
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="page-container py-8">
       {/* Tabs skeleton */}
-      <div className="flex gap-4 mb-8 border-b border-gray-700 pb-4">
-        <Skeleton className="h-10 w-24 rounded-lg" />
-        <Skeleton className="h-10 w-28 rounded-lg" />
+      <div className="flex gap-1 p-1 bg-surface-100 rounded-xl w-fit mb-8">
+        <div className="h-10 w-20 bg-white rounded-lg animate-pulse" />
+        <div className="h-10 w-24 bg-transparent rounded-lg animate-pulse" />
       </div>
 
       {/* Cards skeleton */}
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-6">
         <SkeletonCard />
         <SkeletonCard />
       </div>
@@ -60,78 +54,85 @@ export const SkeletonDashboard = () => (
 );
 
 export const SkeletonLogin = () => (
-  <div className="min-h-screen bg-zoom-dark flex items-center justify-center px-4">
-    <div className="max-w-md w-full space-y-6">
+  <div className="min-h-screen bg-surface-0 mesh-bg flex items-center justify-center px-4">
+    <div className="w-full max-w-md space-y-6">
       <div className="text-center space-y-3">
-        <Skeleton className="w-12 h-12 rounded-xl mx-auto" />
-        <Skeleton className="h-8 w-48 mx-auto" />
-        <Skeleton className="h-4 w-64 mx-auto" />
+        <div className="w-14 h-14 bg-surface-200 rounded-2xl mx-auto animate-pulse" />
+        <div className="h-8 w-40 bg-surface-200 rounded-xl mx-auto animate-pulse" />
+        <div className="h-5 w-56 bg-surface-200 rounded-lg mx-auto animate-pulse" />
       </div>
-      <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700 space-y-4">
-        <Skeleton className="h-12 w-full rounded-lg" />
-        <Skeleton className="h-1 w-full" />
-        <Skeleton className="h-12 w-full rounded-lg" />
-        <Skeleton className="h-12 w-full rounded-lg" />
-        <Skeleton className="h-12 w-full rounded-lg" />
+      <div className="card space-y-4">
+        <div className="h-12 bg-surface-200 rounded-xl animate-pulse" />
+        <div className="h-px bg-surface-200 my-2" />
+        <div className="space-y-2.5">
+          <Skeleton className="h-5 w-16" />
+          <div className="h-12 bg-surface-200 rounded-xl animate-pulse" />
+        </div>
+        <div className="space-y-2.5">
+          <Skeleton className="h-5 w-20" />
+          <div className="h-12 bg-surface-200 rounded-xl animate-pulse" />
+        </div>
+        <div className="h-12 bg-brand-600 rounded-xl animate-pulse" />
       </div>
     </div>
   </div>
 );
 
 export const SkeletonRoom = () => (
-  <div className="h-screen bg-zoom-dark flex flex-col">
-    <div className="bg-zoom-darker border-b border-gray-700 px-4 py-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-6 h-6 rounded" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
-          </div>
+  <div className="h-screen bg-surface-0 flex flex-col">
+    <div className="h-14 border-b border-surface-200/60 bg-surface-0/80 backdrop-blur-2xl">
+      <div className="page-container h-full flex items-center gap-3">
+        <div className="w-8 h-8 bg-surface-200 rounded-xl animate-pulse" />
+        <div className="h-px w-px bg-surface-200" />
+        <div className="space-y-1.5">
+          <div className="h-4 w-36 bg-surface-200 rounded-lg animate-pulse" />
+          <div className="h-3 w-24 bg-surface-200 rounded animate-pulse" />
         </div>
-        <Skeleton className="h-4 w-24" />
       </div>
     </div>
-    <div className="flex-1 grid grid-cols-2 gap-2 p-2">
-      <Skeleton className="w-full h-full rounded-xl" />
-      <Skeleton className="w-full h-full rounded-xl" />
+    <div className="flex-1 p-3 grid grid-cols-2 gap-3">
+      <Skeleton className="w-full h-full rounded-2xl" />
+      <Skeleton className="w-full h-full rounded-2xl" />
     </div>
-    <div className="bg-zoom-darker border-t border-gray-700 px-4 py-3">
-      <div className="flex items-center justify-center gap-3">
-        <Skeleton className="w-12 h-12 rounded-full" />
-        <Skeleton className="w-12 h-12 rounded-full" />
-        <Skeleton className="w-12 h-12 rounded-full" />
-        <Skeleton className="w-16 h-12 rounded-full" />
-      </div>
+    <div className="h-20 border-t border-surface-200/60 bg-surface-0/80 backdrop-blur-2xl flex items-center justify-center gap-3">
+      {[1,2,3,4,5].map(i => (
+        <div key={i} className={`h-12 ${i === 5 ? 'w-14' : 'w-12'} bg-surface-200 rounded-2xl animate-pulse`} />
+      ))}
     </div>
   </div>
 );
 
 export const SkeletonProfile = () => (
-  <div className="min-h-screen bg-zoom-dark">
-    <div className="bg-zoom-darker border-b border-gray-700 px-4 py-4">
-      <div className="max-w-4xl mx-auto flex items-center gap-4">
-        <Skeleton className="w-5 h-5" />
-        <Skeleton className="h-6 w-40" />
+  <div className="min-h-screen bg-surface-0">
+    <div className="h-16 border-b border-surface-200/60 bg-surface-0/80 backdrop-blur-2xl">
+      <div className="page-container h-full flex items-center gap-4">
+        <div className="w-8 h-8 bg-surface-200 rounded-xl animate-pulse" />
+        <div className="h-5 w-36 bg-surface-200 rounded-lg animate-pulse" />
       </div>
     </div>
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-      <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700 space-y-6">
-        <Skeleton className="h-5 w-32" />
+      <div className="card space-y-6">
+        <div className="h-4 w-28 bg-surface-200 rounded animate-pulse" />
         <div className="flex flex-col items-center gap-4">
-          <Skeleton className="w-32 h-32 rounded-full" />
+          <div className="w-28 h-28 bg-surface-200 rounded-full animate-pulse" />
           <div className="flex gap-3">
-            <Skeleton className="h-9 w-28 rounded-lg" />
-            <Skeleton className="h-9 w-20 rounded-lg" />
+            <div className="h-10 w-32 bg-surface-200 rounded-xl animate-pulse" />
+            <div className="h-10 w-20 bg-surface-200 rounded-xl animate-pulse" />
           </div>
         </div>
       </div>
-      <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700 space-y-4">
-        <Skeleton className="h-5 w-28" />
-        <Skeleton className="h-12 w-full rounded-lg" />
-        <Skeleton className="h-12 w-full rounded-lg" />
+      <div className="card space-y-4">
+        <div className="h-4 w-28 bg-surface-200 rounded animate-pulse" />
+        <div className="space-y-2.5">
+          <Skeleton className="h-5 w-24" />
+          <div className="h-12 bg-surface-200 rounded-xl animate-pulse" />
+        </div>
+        <div className="space-y-2.5">
+          <Skeleton className="h-5 w-12" />
+          <div className="h-12 bg-surface-200 rounded-xl animate-pulse" />
+        </div>
+        <div className="h-12 bg-brand-600 rounded-xl animate-pulse w-full" />
       </div>
-      <Skeleton className="h-12 w-full rounded-lg" />
     </div>
   </div>
 );

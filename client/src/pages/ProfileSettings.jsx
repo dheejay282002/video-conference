@@ -1,12 +1,11 @@
 ﻿import React, { useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { SkeletonProfile } from '../components/UI/Skeleton';
-import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Save, LogOut, Shield } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { user, loading, updateProfile, updatePassword, logout } = useAuth();
-  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -28,12 +27,11 @@ const ProfileSettings = () => {
       const token = localStorage.getItem('token');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/api/user/profile-photo`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData
       });
       const data = await response.json();
-      if (response.ok) { window.location.reload(); } else { setMessage({ type: 'error', text: data.message }); }
+      if (response.ok) window.location.reload();
+      else setMessage({ type: 'error', text: data.message });
     } catch (error) { setMessage({ type: 'error', text: 'Failed to upload photo' }); }
     finally { setUploading(false); }
   };
@@ -43,8 +41,7 @@ const ProfileSettings = () => {
       const token = localStorage.getItem('token');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/api/user/profile-photo`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) window.location.reload();
     } catch (error) { setMessage({ type: 'error', text: 'Failed to remove photo' }); }
@@ -54,10 +51,8 @@ const ProfileSettings = () => {
     e.preventDefault();
     setSaving(true);
     setMessage({ type: '', text: '' });
-    try {
-      await updateProfile(displayName);
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
-    } catch (error) { setMessage({ type: 'error', text: 'Failed to update profile' }); }
+    try { await updateProfile(displayName); setMessage({ type: 'success', text: 'Profile updated!' }); }
+    catch (error) { setMessage({ type: 'error', text: 'Failed to update profile' }); }
     finally { setSaving(false); }
   };
 
@@ -67,60 +62,113 @@ const ProfileSettings = () => {
     setMessage({ type: '', text: '' });
     try {
       await updatePassword(currentPassword, newPassword);
-      setMessage({ type: 'success', text: 'Password updated successfully!' });
+      setMessage({ type: 'success', text: 'Password updated!' });
       setCurrentPassword(''); setNewPassword('');
     } catch (error) { setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update password' }); }
     finally { setSaving(false); }
   };
 
   return (
-    <div className="min-h-screen bg-zoom-dark">
-      <div className="bg-zoom-darker border-b border-gray-700 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <Link to="/dashboard" className="p-2 hover:bg-gray-700 rounded-lg transition-all"><ArrowLeft className="w-5 h-5" /></Link>
-          <h1 className="text-xl font-semibold">Profile Settings</h1>
+    <div className="min-h-screen bg-surface-0">
+      {/* Header */}
+      <nav className="border-b border-surface-200/60 bg-surface-0/80 backdrop-blur-2xl">
+        <div className="page-container h-16 flex items-center gap-4">
+          <Link to="/dashboard" className="p-2 hover:bg-surface-100 rounded-xl transition-all">
+            <ArrowLeft className="w-4 h-4 text-surface-600" />
+          </Link>
+          <h1 className="text-lg font-bold tracking-tight">Profile Settings</h1>
         </div>
-      </div>
+      </nav>
+
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {message.text && (<div className={`p-3 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}><p className={`text-sm ${message.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>{message.text}</p></div>)}
-        <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700">
-          <h2 className="text-lg font-semibold mb-6">Profile Photo</h2>
-          <div className="flex flex-col items-center gap-4">
-            {user.avatar ? (<img src={user.avatar} alt={user.displayName} className="w-32 h-32 rounded-full object-cover border-4 border-zoom-blue" />) : (<div className="w-32 h-32 bg-zoom-blue rounded-full flex items-center justify-center text-4xl font-bold">{user.displayName?.charAt(0)}</div>)}
+        {message.text && (
+          <div className={`p-4 rounded-xl animate-slide-down ${
+            message.type === 'success' ? 'bg-success/5 border border-success/20' : 'bg-danger/5 border border-danger/20'
+          }`}>
+            <p className={`text-sm font-medium ${message.type === 'success' ? 'text-success' : 'text-danger'}`}>{message.text}</p>
+          </div>
+        )}
+
+        {/* Photo */}
+        <div className="card">
+          <h2 className="text-sm font-semibold text-surface-700 mb-6 uppercase tracking-wider">Profile Photo</h2>
+          <div className="flex flex-col items-center gap-5">
+            {user.avatar ? (
+              <div className="relative group">
+                <img src={user.avatar} alt={user.displayName} className="w-28 h-28 rounded-full object-cover ring-4 ring-surface-200 transition-all duration-300 group-hover:ring-brand-500/30" />
+                <div className="absolute inset-0 rounded-full bg-surface-0/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            ) : (
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-4xl font-bold text-white shadow-glow">
+                {user.displayName?.charAt(0)}
+              </div>
+            )}
             <div className="flex gap-3">
-              <button onClick={() => fileInputRef.current.click()} disabled={uploading} className="flex items-center gap-2 bg-zoom-blue hover:bg-blue-600 px-4 py-2 rounded-lg transition-all disabled:opacity-50">
+              <button onClick={() => fileInputRef.current.click()} disabled={uploading} className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2">
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                 {uploading ? 'Uploading...' : 'Change Photo'}
               </button>
-              {user.avatar && <button onClick={handleRemovePhoto} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-all">Remove</button>}
+              {user.avatar && (
+                <button onClick={handleRemovePhoto} className="btn-secondary py-2.5 px-5 text-sm">Remove</button>
+              )}
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
           </div>
         </div>
-        <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700">
-          <h2 className="text-lg font-semibold mb-6">Basic Information</h2>
+
+        {/* Basic Info */}
+        <div className="card">
+          <h2 className="text-sm font-semibold text-surface-700 mb-6 uppercase tracking-wider">Basic Information</h2>
           <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label><input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="input-field" required /></div>
-            <div><label className="block text-sm font-medium text-gray-300 mb-1">Email</label><input type="email" value={user.email} className="input-field opacity-60 cursor-not-allowed" disabled /><p className="text-xs text-gray-500 mt-1">Email cannot be changed</p></div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Display Name</label>
+              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="input-field" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Email</label>
+              <input type="email" value={user.email} className="input-field opacity-60 cursor-not-allowed" disabled />
+              <p className="text-xs text-surface-400 mt-1.5">Email cannot be changed</p>
+            </div>
             <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : 'Save Changes'}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         </div>
-        <div className="bg-zoom-darker p-8 rounded-2xl border border-gray-700">
-          <h2 className="text-lg font-semibold mb-6">Change Password</h2>
+
+        {/* Password */}
+        <div className="card">
+          <h2 className="text-sm font-semibold text-surface-700 mb-6 uppercase tracking-wider">Change Password</h2>
           <form onSubmit={handlePasswordUpdate} className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-300 mb-1">Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="input-field" required /></div>
-            <div><label className="block text-sm font-medium text-gray-300 mb-1">New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input-field" placeholder="Min 6 characters" required /></div>
-            <button type="submit" disabled={saving} className="bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Current Password</label>
+              <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="input-field" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">New Password</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input-field" placeholder="Min 6 characters" required />
+            </div>
+            <button type="submit" disabled={saving} className="btn-secondary flex items-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
               {saving ? 'Updating...' : 'Update Password'}
             </button>
           </form>
         </div>
-        <div className="bg-zoom-darker p-6 rounded-2xl border border-red-500/30">
-          <h2 className="text-lg font-semibold text-red-400 mb-2">Account</h2>
-          <p className="text-gray-400 text-sm mb-4">Sign out from your account</p>
-          <button onClick={() => { logout(); navigate('/'); }} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-semibold transition-all">Sign Out</button>
+
+        {/* Sign Out */}
+        <div className="card border-danger/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold">Sign Out</h2>
+              <p className="text-sm text-surface-500">Sign out from your account</p>
+            </div>
+            <button onClick={() => { logout(); window.location.href = '/'; }} className="btn-danger flex items-center gap-2 py-2.5">
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </div>

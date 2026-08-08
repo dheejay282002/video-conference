@@ -6,36 +6,33 @@ import { Loader2 } from 'lucide-react';
 const CreateRoom = () => {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!title.trim()) return;
     setLoading(true);
-    setError('');
-
     try {
-      const response = await roomAPI.createRoom(title || 'My Meeting');
-      const roomCode = response.data.roomCode;
-      navigate(`/room/${roomCode}`);
+      const response = await roomAPI.create({ title: title.trim() });
+      navigate(`/room/${response.data.room.roomCode}`);
     } catch (error) {
-      setError('Failed to create meeting. Please try again.');
-      console.error('Create room error:', error);
+      console.error('Error creating room:', error);
+      alert('Failed to create room');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleCreate} className="space-y-4">
+    <form onSubmit={handleCreate} className="space-y-3">
       <input
         type="text"
-        placeholder="Meeting title (optional)"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
+        placeholder="Meeting title"
         className="input-field"
+        required
       />
-      {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={loading}
@@ -43,11 +40,11 @@ const CreateRoom = () => {
       >
         {loading ? (
           <>
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             Creating...
           </>
         ) : (
-          'New Meeting'
+          'Start Meeting'
         )}
       </button>
     </form>

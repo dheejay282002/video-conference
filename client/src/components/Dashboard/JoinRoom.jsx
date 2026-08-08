@@ -1,62 +1,43 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { roomAPI } from '../../services/api';
 import { Loader2 } from 'lucide-react';
 
 const JoinRoom = () => {
-  const [roomCode, setRoomCode] = useState('');
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleJoin = async (e) => {
     e.preventDefault();
-    
-    if (roomCode.length !== 6) {
-      setError('Please enter a valid 6-digit code');
-      return;
-    }
-
+    if (!code.trim()) return;
     setLoading(true);
-    setError('');
-
     try {
-      await roomAPI.joinRoom(roomCode);
-      navigate(`/room/${roomCode}`);
+      navigate(`/room/${code.trim()}`);
     } catch (error) {
-      if (error.response?.status === 404) {
-        setError('Meeting not found. Check the code and try again.');
-      } else {
-        setError('Failed to join meeting. Please try again.');
-      }
-      console.error('Join room error:', error);
+      console.error('Error joining room:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleJoin} className="space-y-4">
+    <form onSubmit={handleJoin} className="space-y-3">
       <input
         type="text"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
         placeholder="Enter meeting code"
-        value={roomCode}
-        onChange={(e) => {
-          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-          setRoomCode(value);
-        }}
-        className="input-field text-center text-2xl tracking-widest font-mono"
-        maxLength={6}
+        className="input-field font-mono"
+        required
       />
-      {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
-        disabled={loading || roomCode.length !== 6}
-        className="btn-primary w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50"
+        disabled={loading}
+        className="w-full bg-success hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             Joining...
           </>
         ) : (
