@@ -4,18 +4,16 @@ import VideoPlayer from './VideoPlayer';
 const VideoGrid = ({ localStream, remoteStreams, remoteUsers }) => {
   const totalParticipants = 1 + remoteStreams.length;
 
-  const getGridClass = () => {
-    if (totalParticipants === 1) return 'grid-cols-1';
-    if (totalParticipants === 2) return 'grid-cols-2';
-    if (totalParticipants <= 4) return 'grid-cols-2';
-    if (totalParticipants <= 6) return 'grid-cols-3';
-    if (totalParticipants <= 9) return 'grid-cols-3';
-    return 'grid-cols-4';
+  const getGridStyle = () => {
+    if (totalParticipants === 1) return { gridTemplateColumns: '1fr' };
+    if (totalParticipants === 2) return { gridTemplateColumns: 'repeat(2, 1fr)' };
+    if (totalParticipants <= 4) return { gridTemplateColumns: 'repeat(2, 1fr)' };
+    if (totalParticipants <= 6) return { gridTemplateColumns: 'repeat(3, 1fr)' };
+    return { gridTemplateColumns: 'repeat(3, 1fr)' };
   };
 
   return (
-    <div className={`grid ${getGridClass()} gap-2 p-2 h-full`}>
-      {/* Local Video */}
+    <div className="grid h-full gap-3 p-3" style={getGridStyle()}>
       <VideoPlayer
         stream={localStream}
         userName="You"
@@ -24,7 +22,6 @@ const VideoGrid = ({ localStream, remoteStreams, remoteUsers }) => {
         isVideoOff={!localStream}
       />
 
-      {/* Remote Videos */}
       {remoteStreams.map((item) => {
         const user = remoteUsers.find(u => u.userId === item.userId);
         return (

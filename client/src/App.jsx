@@ -1,20 +1,20 @@
 ﻿import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import LandingPage from './pages/LandingPage';
+import LandingPage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfileSettings from './pages/ProfileSettings';
 import Dashboard from './components/Dashboard/Dashboard';
-import AdminPanel from './components/Dashboard/AdminPanel';
+import AdminPanel from './pages/AdminPanel';
 import RoomPage from './pages/RoomPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zoom-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zoom-blue"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#09090b' }}>
+        <div className="animate-spin rounded-full h-10 w-10" style={{ border: '3px solid #27272a', borderTopColor: '#6366f1' }}></div>
       </div>
     );
   }
@@ -25,8 +25,8 @@ const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zoom-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zoom-blue"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#09090b' }}>
+        <div className="animate-spin rounded-full h-10 w-10" style={{ border: '3px solid #27272a', borderTopColor: '#6366f1' }}></div>
       </div>
     );
   }
