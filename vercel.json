@@ -4,10 +4,14 @@
   "outputDirectory": "client/dist",
   "installCommand": "cd client && npm install",
   "framework": null,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/((?!assets/).*)",
-      "destination": "/index.html"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
