@@ -93,7 +93,7 @@ const LoginPage = () => {
           )}
 
           {/* Google SSO */}
-          <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white text-surface-900 font-semibold py-3 px-4 rounded-xl border border-surface-200 hover:border-surface-300 hover:shadow-elevated transition-all duration-300 group">
+          <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white font-semibold py-3 px-4 rounded-xl border border-gray-300 hover:border-gray-400 transition-all duration-300 group" style={{ color: '#1f2937' }}>
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -109,7 +109,7 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -120,7 +120,7 @@ const LoginPage = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
