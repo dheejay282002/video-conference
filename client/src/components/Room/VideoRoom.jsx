@@ -410,7 +410,7 @@ const VideoRoom = ({ roomCode }) => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1">
-          <VideoGrid localStream={localStream} remoteStreams={remoteStreams} remoteUsers={remoteUsers} />
+          <VideoGrid localStream={localStream} remoteStreams={remoteStreams} remoteUsers={remoteUsers} localUser={user} />
         </div>
 
         {(isChatOpen || isParticipantsOpen) && (

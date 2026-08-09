@@ -273,7 +273,9 @@ async function startServer() {
   }
 
   try {
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      serverApi: { version: '1', strict: true, deprecationErrors: true }
+    });
     console.log('Connected to MongoDB Atlas');
     const User = require('./models/User');
     const adminExists = await User.findOne({ email: 'admin@videoconf.com' });

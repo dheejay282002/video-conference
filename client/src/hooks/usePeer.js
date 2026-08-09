@@ -10,9 +10,9 @@ export const usePeer = (roomId, userId) => {
     if (!userId || peerRef.current) return;
 
     const peer = new Peer(`${userId}-${roomId}`, {
-      host: 'videoconf-api.onrender.com',
+      host: '0.peerjs.com',
       port: 443,
-      path: '/peerjs',
+      path: '/',
       secure: true,
       config: {
         iceServers: [
@@ -37,10 +37,6 @@ export const usePeer = (roomId, userId) => {
 
     peer.on('error', (error) => {
       console.error('PeerJS error:', error.type, error.message);
-    });
-
-    peer.on('disconnected', () => {
-      console.log('PeerJS disconnected');
     });
 
     peerRef.current = peer;

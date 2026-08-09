@@ -1,15 +1,15 @@
 ﻿import React from 'react';
 import VideoPlayer from './VideoPlayer';
 
-const VideoGrid = ({ localStream, remoteStreams, remoteUsers }) => {
+const VideoGrid = ({ localStream, remoteStreams, remoteUsers, localUser }) => {
   const totalParticipants = 1 + remoteStreams.length;
 
   const getGridStyle = () => {
-    if (totalParticipants === 1) return { gridTemplateColumns: '1fr' };
-    if (totalParticipants === 2) return { gridTemplateColumns: 'repeat(2, 1fr)' };
-    if (totalParticipants <= 4) return { gridTemplateColumns: 'repeat(2, 1fr)' };
-    if (totalParticipants <= 6) return { gridTemplateColumns: 'repeat(3, 1fr)' };
-    return { gridTemplateColumns: 'repeat(3, 1fr)' };
+    if (totalParticipants === 1) return { gridTemplateColumns: '1fr', gridTemplateRows: '1fr' };
+    if (totalParticipants === 2) return { gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: '1fr' };
+    if (totalParticipants <= 4) return { gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)' };
+    if (totalParticipants <= 6) return { gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(2, 1fr)' };
+    return { gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)' };
   };
 
   return (
@@ -20,6 +20,7 @@ const VideoGrid = ({ localStream, remoteStreams, remoteUsers }) => {
         isMuted={true}
         isLocal={true}
         isVideoOff={!localStream}
+        userAvatar={localUser?.avatar}
       />
 
       {remoteStreams.map((item) => {
@@ -32,6 +33,7 @@ const VideoGrid = ({ localStream, remoteStreams, remoteUsers }) => {
             isMuted={user?.isMuted || false}
             isLocal={false}
             isVideoOff={user?.isVideoOff || false}
+            userAvatar={user?.userAvatar}
           />
         );
       })}
