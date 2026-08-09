@@ -21,7 +21,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: '/auth/google/callback',
+        callbackURL: `${process.env.SERVER_URL || 'http://localhost:5000'}/auth/google/callback`,
         scope: ['profile', 'email'],
         passReqToCallback: true
       },
