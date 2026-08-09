@@ -33,13 +33,19 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           let user = await User.findOne({ email });
 
           if (!user) {
-            // User not registered - block login
-            return done(null, false, {
-              message: 'No account found with this email. Please register first.'
+            // Auto-create account from Google profile
+            user = new User({
+              displayName: profile.displayName,
+              email,
+              password: require('crypto').randomBytes(32).toString('hex'),
+              googleId: profile.id,
+              avatar: profile.photos[0]?.value || ''
             });
+            await user.save();
+            console.log(`Auto-created Google user: ${email}`);
           }
 
-          // User exists - link Google ID if not already linked
+          // Link Google ID if not already linked
           if (!user.googleId) {
             user.googleId = profile.id;
             if (!user.avatar && profile.photos[0]?.value) {
