@@ -255,13 +255,6 @@ async function startServer() {
       serverApi: { version: '1', strict: true, deprecationErrors: true }
     });
     console.log('Connected to MongoDB Atlas');
-    const User = require('./models/User');
-    const adminExists = await User.findOne({ email: 'admin@videoconf.com' });
-    if (!adminExists) {
-      const admin = new User({ displayName: 'Admin', email: 'admin@videoconf.com', password: 'admin123' });
-      await admin.save();
-      console.log('Admin account created: admin@videoconf.com / admin123');
-    }
   } catch (err) {
     console.error('MongoDB Atlas connection failed:', err.message);
     console.log('Falling back to in-memory database...');
@@ -269,6 +262,14 @@ async function startServer() {
     mongoUri = mongod.getUri();
     await mongoose.connect(mongoUri);
     console.log('Connected to in-memory MongoDB');
+  }
+
+  const User = require('./models/User');
+  const adminExists = await User.findOne({ email: 'admin@videoconf.com' });
+  if (!adminExists) {
+    const admin = new User({ displayName: 'Admin', email: 'admin@videoconf.com', password: 'admin123' });
+    await admin.save();
+    console.log('Admin account created: admin@videoconf.com / admin123');
   }
 
   server.listen(PORT, () => {
