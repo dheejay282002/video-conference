@@ -19,7 +19,7 @@ const upload = multer({
   }
 });
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || process.env.SERVER_URL || 'http://localhost:5173';
 
 // Local auth
 router.post('/register', register);
