@@ -12,8 +12,8 @@ export const usePeer = (roomId, userId) => {
     if (!userId) return;
 
     const peer = new Peer(`${userId}-${roomId}`, {
-      host: 'localhost',
-      port: 5000,
+      host: 'videoconf-api.onrender.com',
+      port: 443,
       path: '/peerjs',
       config: {
         iceServers: [
