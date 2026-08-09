@@ -145,6 +145,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint — shows OAuth config (remove after debugging)
+app.get('/api/debug/oauth', (req, res) => {
+  res.json({
+    SERVER_URL: process.env.SERVER_URL || 'NOT SET',
+    CLIENT_URL: process.env.CLIENT_URL || 'NOT SET',
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'NOT SET',
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'NOT SET',
+    expectedCallbackURL: `${process.env.SERVER_URL || 'http://localhost:5000'}/auth/google/callback`,
+    nodeEnv: process.env.NODE_ENV || 'NOT SET'
+  });
+});
+
 // Global error handler — prevents 500 crashes
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
