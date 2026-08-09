@@ -147,9 +147,10 @@ async function startServer() {
 
   try {
     await mongoose.connect(mongoUri);
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB Atlas');
   } catch (err) {
-    console.log('Atlas connection failed, falling back to in-memory database...');
+    console.error('MongoDB Atlas connection failed:', err.message);
+    console.log('Falling back to in-memory database...');
     const mongod = await MongoMemoryServer.create();
     mongoUri = mongod.getUri();
     await mongoose.connect(mongoUri);
