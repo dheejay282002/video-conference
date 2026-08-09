@@ -25,7 +25,8 @@ const ProfileSettings = () => {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_API_URL || 'https://videoconf-api.onrender.com';
+
       const response = await fetch(`${API_URL}/api/user/profile-photo`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData
       });
@@ -39,7 +40,8 @@ const ProfileSettings = () => {
   const handleRemovePhoto = async () => {
     try {
       const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_API_URL || 'https://videoconf-api.onrender.com';
+
       const response = await fetch(`${API_URL}/api/user/profile-photo`, {
         method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
       });

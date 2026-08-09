@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useCallback } from 'react';
 import Peer from 'peerjs';
 
-const PEER_SERVER_URL = import.meta.env.VITE_PEER_SERVER_URL || 'http://localhost:5000/peerjs';
+const PEER_SERVER_URL = import.meta.env.VITE_PEER_SERVER_URL || 'https://videoconf-api.onrender.com/peerjs';
 
 export const usePeer = (roomId, userId) => {
   const [peerId, setPeerId] = useState(null);
