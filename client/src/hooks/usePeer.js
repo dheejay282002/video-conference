@@ -9,7 +9,10 @@ export const usePeer = (roomId, userId) => {
   const initializePeer = useCallback(() => {
     if (!userId || peerRef.current) return;
 
-    const peer = new Peer(`${userId}-${roomId}`, {
+    const peerIdStr = `${userId}-${roomId}`;
+    console.log('Initializing PeerJS with ID:', peerIdStr);
+
+    const peer = new Peer(peerIdStr, {
       host: '0.peerjs.com',
       port: 443,
       path: '/',
@@ -37,6 +40,13 @@ export const usePeer = (roomId, userId) => {
 
     peer.on('error', (error) => {
       console.error('PeerJS error:', error.type, error.message);
+      if (error.type === 'unavailable-id') {
+        console.log('Peer ID taken, retrying...');
+        peerRef.current = null;
+        setPeerId(null);
+        setIsPeerReady(false);
+        setTimeout(() => initializePeer(), 2000);
+      }
     });
 
     peerRef.current = peer;
@@ -45,7 +55,17 @@ export const usePeer = (roomId, userId) => {
   const callPeer = useCallback((remotePeerId, stream) => {
     if (!peerRef.current || !stream) return null;
     console.log('Calling peer:', remotePeerId);
-    return peerRef.current.call(remotePeerId, stream);
+    try {
+      const call = peerRef.current.call(remotePeerId, stream);
+      if (!call) return null;
+      call.on('error', (err) => {
+        console.error('Call error:', err.message);
+      });
+      return call;
+    } catch (err) {
+      console.error('Failed to call peer:', err.message);
+      return null;
+    }
   }, []);
 
   const destroyPeer = useCallback(() => {

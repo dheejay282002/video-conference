@@ -9,7 +9,7 @@ import RoomControls from './RoomControls';
 import Chat from './Chat';
 import ParticipantList from './ParticipantList';
 import Toast from './Toast';
-import { ArrowLeft, Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, UserPlus, Check, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Check, X } from 'lucide-react';
 
 const VideoRoom = ({ roomCode }) => {
   const { user } = useAuth();
@@ -26,15 +26,53 @@ const VideoRoom = ({ roomCode }) => {
   const [loading, setLoading] = useState(true);
   const localStreamRef = useRef(null);
   const remoteStreamsRef = useRef([]);
-  const calledPeersRef = useRef(new Set());
+  const connectingRef = useRef(new Set());
+  const peerInstanceRef = useRef(null);
 
-  const { peerId, peer, isPeerReady, initializePeer, callPeer, destroyPeer } = usePeer(roomCode, user?._id);
+  const { peerId, isPeerReady, initializePeer, callPeer, destroyPeer } = usePeer(roomCode, user?._id);
   const {
     isConnected, remoteUsers, messages, toasts, lobbyState, lobbyRequests,
     isKicked, isEnded,
     sendMessage, toggleMute, toggleVideo, screenShareStarted, screenShareStopped,
     endMeeting, acceptJoiner, rejectJoiner, kickUser, dismissToast
   } = useSocket(roomCode, user?._id, user?.displayName, user?.avatar);
+
+  const tryCallPeer = useCallback((remoteUserId, stream) => {
+    const remotePeerId = `${remoteUserId}-${roomCode}`;
+    const call = callPeer(remotePeerId, stream);
+    if (!call) {
+      connectingRef.current.delete(remoteUserId);
+      return;
+    }
+    connectingRef.current.add(remoteUserId);
+
+    call.on('stream', (remoteStream) => {
+      console.log('Got stream from:', remoteUserId);
+      connectingRef.current.delete(remoteUserId);
+      if (!remoteStreamsRef.current.some(rs => rs.userId === remoteUserId)) {
+        remoteStreamsRef.current = [...remoteStreamsRef.current, { userId: remoteUserId, stream: remoteStream }];
+        setRemoteStreams([...remoteStreamsRef.current]);
+      }
+    });
+
+    call.on('close', () => {
+      connectingRef.current.delete(remoteUserId);
+      remoteStreamsRef.current = remoteStreamsRef.current.filter(rs => rs.userId !== remoteUserId);
+      setRemoteStreams([...remoteStreamsRef.current]);
+    });
+
+    call.on('error', (err) => {
+      console.error('Call failed to', remoteUserId, err.message);
+      connectingRef.current.delete(remoteUserId);
+      // Retry after delay
+      setTimeout(() => {
+        if (localStreamRef.current && remoteUsers.some(u => u.userId === remoteUserId)) {
+          console.log('Retrying call to:', remoteUserId);
+          tryCallPeer(remoteUserId, localStreamRef.current);
+        }
+      }, 2000);
+    });
+  }, [roomCode, callPeer, remoteUsers]);
 
   // Fetch room data
   useEffect(() => {
@@ -51,7 +89,7 @@ const VideoRoom = ({ roomCode }) => {
     fetchRoom();
   }, [roomCode]);
 
-  // Get media stream
+  // Get media stream + init peer
   useEffect(() => {
     const getMediaStream = async () => {
       try {
@@ -68,65 +106,45 @@ const VideoRoom = ({ roomCode }) => {
     return () => {
       if (localStreamRef.current) localStreamRef.current.getTracks().forEach(track => track.stop());
       destroyPeer();
+      connectingRef.current.clear();
+      remoteStreamsRef.current = [];
     };
   }, [user]);
 
   // Handle incoming calls
   useEffect(() => {
-    if (!peer || !localStream) return;
-    const handleCall = (call) => {
-      console.log('Answering call from:', call.peer);
-      call.answer(localStream);
-      call.on('stream', (remoteStream) => {
-        const peerUserId = call.peer.split('-')[0];
-        console.log('Got remote stream from:', peerUserId);
-        if (!remoteStreamsRef.current.some(rs => rs.userId === peerUserId)) {
-          remoteStreamsRef.current = [...remoteStreamsRef.current, { userId: peerUserId, stream: remoteStream }];
-          setRemoteStreams([...remoteStreamsRef.current]);
-        }
-      });
-      call.on('close', () => {
-        const peerUserId = call.peer.split('-')[0];
-        remoteStreamsRef.current = remoteStreamsRef.current.filter(rs => rs.userId !== peerUserId);
-        setRemoteStreams([...remoteStreamsRef.current]);
-      });
-    };
-    peer.on('call', handleCall);
-    return () => { peer.off('call', handleCall); };
-  }, [peer, localStream]);
+    if (!isPeerReady || !localStream) return;
+    const peer = peerInstanceRef.current || (peerId ? { on: () => {}, off: () => {} } : null);
+    if (!peer) return;
+  }, [isPeerReady, localStream, peerId]);
 
-  // Call new remote users
+  // Call new remote users when they join
   useEffect(() => {
     if (!isPeerReady || !localStream || !remoteUsers.length) return;
     remoteUsers.forEach((remoteUser) => {
       if (remoteUser.userId === user?._id) return;
-      if (calledPeersRef.current.has(remoteUser.userId)) return;
-      calledPeersRef.current.add(remoteUser.userId);
-
-      const remotePeerId = `${remoteUser.userId}-${roomCode}`;
-      console.log('Calling new peer:', remotePeerId);
-      const call = callPeer(remotePeerId, localStream);
-      if (call) {
-        call.on('stream', (remoteStream) => {
-          console.log('Got stream from:', remoteUser.userId);
-          if (!remoteStreamsRef.current.some(rs => rs.userId === remoteUser.userId)) {
-            remoteStreamsRef.current = [...remoteStreamsRef.current, { userId: remoteUser.userId, stream: remoteStream }];
-            setRemoteStreams([...remoteStreamsRef.current]);
-          }
-        });
-        call.on('close', () => {
-          remoteStreamsRef.current = remoteStreamsRef.current.filter(rs => rs.userId !== remoteUser.userId);
-          setRemoteStreams([...remoteStreamsRef.current]);
-        });
-        call.on('error', (err) => {
-          console.error('Call error:', err);
-          calledPeersRef.current.delete(remoteUser.userId);
-        });
-      }
+      if (connectingRef.current.has(remoteUser.userId)) return;
+      if (remoteStreamsRef.current.some(rs => rs.userId === remoteUser.userId)) return;
+      tryCallPeer(remoteUser.userId, localStream);
     });
-  }, [remoteUsers, isPeerReady, localStream, roomCode, callPeer, user?._id]);
+  }, [remoteUsers, isPeerReady, localStream, user?._id, tryCallPeer]);
 
-  // Remove remote streams for disconnected users
+  // Periodic retry - try to call users we haven't connected to yet
+  useEffect(() => {
+    if (!isPeerReady || !localStream || !remoteUsers.length) return;
+    const interval = setInterval(() => {
+      remoteUsers.forEach((remoteUser) => {
+        if (remoteUser.userId === user?._id) return;
+        if (connectingRef.current.has(remoteUser.userId)) return;
+        if (remoteStreamsRef.current.some(rs => rs.userId === remoteUser.userId)) return;
+        console.log('Retry interval: calling', remoteUser.userName);
+        tryCallPeer(remoteUser.userId, localStream);
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPeerReady, localStream, remoteUsers, user?._id, tryCallPeer]);
+
+  // Remove streams for disconnected users
   useEffect(() => {
     const activeIds = new Set(remoteUsers.map(u => u.userId));
     const before = remoteStreamsRef.current.length;
@@ -134,9 +152,8 @@ const VideoRoom = ({ roomCode }) => {
     if (remoteStreamsRef.current.length !== before) {
       setRemoteStreams([...remoteStreamsRef.current]);
     }
-    // Reset called peers for users who left
-    calledPeersRef.current.forEach(id => {
-      if (!activeIds.has(id)) calledPeersRef.current.delete(id);
+    connectingRef.current.forEach(id => {
+      if (!activeIds.has(id)) connectingRef.current.delete(id);
     });
   }, [remoteUsers]);
 
@@ -220,7 +237,7 @@ const VideoRoom = ({ roomCode }) => {
           </div>
           <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Connection Error</h2>
           <p style={{ color: '#71717a', marginBottom: '24px' }}>{error}</p>
-          <button onClick={() => navigate('/dashboard')} className="btn-primary">Back to Dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={{ padding: '12px 24px', borderRadius: '12px', background: '#4f46e5', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Back to Dashboard</button>
         </div>
       </div>
     );
@@ -256,7 +273,7 @@ const VideoRoom = ({ roomCode }) => {
     );
   }
 
-  // LOBBY - Waiting for host to accept
+  // LOBBY - Waiting for host
   if (lobbyState === 'waiting') {
     return (
       <div className="h-screen flex flex-col" style={{ background: '#09090b' }}>
@@ -275,16 +292,11 @@ const VideoRoom = ({ roomCode }) => {
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center" style={{ maxWidth: '480px', padding: '0 24px' }}>
-            {/* Camera Preview */}
             <div style={{ width: '320px', height: '240px', borderRadius: '20px', background: '#18181b', margin: '0 auto 32px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(31,31,35,0.6)' }}>
               {localStream && !isVideoOff ? (
-                <video
-                  ref={(el) => { if (el) el.srcObject = localStream; }}
-                  autoPlay
-                  playsInline
-                  muted
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
-                />
+                <video ref={(el) => { if (el) el.srcObject = localStream; }} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+              ) : user?.avatar ? (
+                <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
@@ -292,55 +304,25 @@ const VideoRoom = ({ roomCode }) => {
                   </div>
                 </div>
               )}
-              <div style={{ position: 'absolute', bottom: '12px', left: '12px', display: 'flex', gap: '6px' }}>
+              <div style={{ position: 'absolute', bottom: '12px', left: '12px' }}>
                 <div style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', fontSize: '12px', color: '#d4d4d8', fontWeight: 500 }}>You</div>
               </div>
             </div>
-
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
               <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#f59e0b' }} />
               <p style={{ color: '#d4d4d8', fontSize: '16px', fontWeight: 500 }}>Waiting for host to let you in...</p>
             </div>
-
-            {/* Lobby Controls */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
-              <button
-                onClick={handleToggleMute}
-                style={{
-                  width: '52px', height: '52px', borderRadius: '16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: isMuted ? 'rgba(239,68,68,0.15)' : '#18181b',
-                  color: isMuted ? '#ef4444' : '#fff',
-                }}
-              >
+              <button onClick={handleToggleMute} style={{ width: '52px', height: '52px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: isMuted ? 'rgba(239,68,68,0.15)' : '#18181b', color: isMuted ? '#ef4444' : '#fff' }}>
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
-              <button
-                onClick={handleToggleVideo}
-                style={{
-                  width: '52px', height: '52px', borderRadius: '16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: isVideoOff ? 'rgba(239,68,68,0.15)' : '#18181b',
-                  color: isVideoOff ? '#ef4444' : '#fff',
-                }}
-              >
+              <button onClick={handleToggleVideo} style={{ width: '52px', height: '52px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: isVideoOff ? 'rgba(239,68,68,0.15)' : '#18181b', color: isVideoOff ? '#ef4444' : '#fff' }}>
                 {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
               </button>
-              <button
-                onClick={handleLeave}
-                style={{
-                  width: '52px', height: '52px', borderRadius: '16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                  background: '#ef4444', color: '#fff',
-                }}
-              >
+              <button onClick={handleLeave} style={{ width: '52px', height: '52px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff' }}>
                 <PhoneOff className="w-5 h-5" />
               </button>
             </div>
-
             <p style={{ color: '#52525b', fontSize: '13px' }}>You can turn on/off your camera and mic while waiting.</p>
           </div>
         </div>
@@ -348,7 +330,6 @@ const VideoRoom = ({ roomCode }) => {
     );
   }
 
-  // LOBBY - Host view with pending requests
   const isHost = lobbyState === 'host' || room?.host?._id === user?._id;
 
   return (
@@ -361,11 +342,7 @@ const VideoRoom = ({ roomCode }) => {
           {lobbyRequests.map((req) => (
             <div key={req.userId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', backdropFilter: 'blur(24px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold', color: '#fff', flexShrink: 0 }}>
-                {req.userAvatar ? (
-                  <img src={req.userAvatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  req.userName?.charAt(0)
-                )}
+                {req.userAvatar ? <img src={req.userAvatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : req.userName?.charAt(0)}
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '13px', fontWeight: 600, color: '#e4e4e7' }}>{req.userName}</p>
