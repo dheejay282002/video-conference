@@ -25,7 +25,7 @@ export const useSocket = (roomId, userId, userName, userAvatar) => {
 
     const socket = io(SOCKET_URL, {
       withCredentials: true,
-      transports: ['websocket', 'polling']
+      transports: ['polling']
     });
 
     socketRef.current = socket;

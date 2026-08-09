@@ -30,7 +30,12 @@ const io = new Server(server, {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  transports: ['polling', 'websocket'],
+  allowUpgrades: true,
+  perMessageDeflate: false,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // Store online users per room + lobby

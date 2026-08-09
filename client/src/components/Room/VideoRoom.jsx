@@ -89,8 +89,10 @@ const VideoRoom = ({ roomCode }) => {
     fetchRoom();
   }, [roomCode]);
 
-  // Get media stream + init peer
+  // Get media stream + init peer (only once)
   useEffect(() => {
+    if (!user) return;
+    if (localStreamRef.current) return;
     const getMediaStream = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -102,9 +104,12 @@ const VideoRoom = ({ roomCode }) => {
         setError('Could not access camera/microphone. Please check permissions.');
       }
     };
-    if (user) getMediaStream();
+    getMediaStream();
     return () => {
-      if (localStreamRef.current) localStreamRef.current.getTracks().forEach(track => track.stop());
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
       destroyPeer();
       connectingRef.current.clear();
       remoteStreamsRef.current = [];
