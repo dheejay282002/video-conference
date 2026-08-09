@@ -32,33 +32,90 @@ const io = new Server(server, {
   }
 });
 
-// Store online users per room
+// Store online users per room + lobby
 const roomUsers = new Map();
+const roomLobby = new Map();
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   socket.on('join-room', (roomId, userId, userName, userAvatar) => {
     socket.join(roomId);
-    
+    socket.data = { roomId, userId, userName, userAvatar };
+
     if (!roomUsers.has(roomId)) {
       roomUsers.set(roomId, new Map());
     }
-    roomUsers.get(roomId).set(userId, { 
-      socketId: socket.id, 
-      userId, 
-      userName, 
-      userAvatar,
-      isMuted: false,
-      isVideoOff: false
-    });
+    if (!roomLobby.has(roomId)) {
+      roomLobby.set(roomId, new Map());
+    }
 
-    socket.to(roomId).emit('user-connected', userId, userName, userAvatar);
-    
-    const users = Array.from(roomUsers.get(roomId).values());
-    socket.emit('room-users', users);
-    
-    console.log(`User ${userName} joined room ${roomId}`);
+    const users = roomUsers.get(roomId);
+    const isHost = users.size === 0;
+
+    if (isHost) {
+      users.set(userId, { socketId: socket.id, userId, userName, userAvatar, isMuted: false, isVideoOff: false });
+      socket.to(roomId).emit('user-connected', userId, userName, userAvatar);
+      const allUsers = Array.from(users.values());
+      socket.emit('room-users', allUsers);
+      socket.emit('you-are-host');
+      console.log(`Host ${userName} created room ${roomId}`);
+    } else {
+      const lobbyEntry = { socketId: socket.id, userId, userName, userAvatar };
+      roomLobby.get(roomId).set(userId, lobbyEntry);
+      const hostData = users.values().next().value;
+      if (hostData) {
+        io.to(hostData.socketId).emit('lobby-join-request', userId, userName, userAvatar, socket.id);
+      }
+      socket.emit('waiting-in-lobby');
+      console.log(`${userName} waiting in lobby for room ${roomId}`);
+    }
+  });
+
+  socket.on('lobby-accept', (roomId, joinerUserId) => {
+    const lobby = roomLobby.get(roomId);
+    const users = roomUsers.get(roomId);
+    if (!lobby || !users) return;
+
+    const joiner = lobby.get(joinerUserId);
+    if (!joiner) return;
+
+    lobby.delete(joinerUserId);
+    users.set(joinerUserId, { socketId: joiner.socketId, userId: joiner.userId, userName: joiner.userName, userAvatar: joiner.userAvatar, isMuted: false, isVideoOff: false });
+
+    io.to(joiner.socketId).emit('lobby-accepted');
+    socket.to(roomId).emit('user-connected', joiner.userId, joiner.userName, joiner.userAvatar);
+    const allUsers = Array.from(users.values());
+    io.to(roomId).emit('room-users', allUsers);
+
+    console.log(`${joiner.userName} accepted into room ${roomId}`);
+  });
+
+  socket.on('lobby-reject', (roomId, joinerUserId) => {
+    const lobby = roomLobby.get(roomId);
+    if (!lobby) return;
+
+    const joiner = lobby.get(joinerUserId);
+    if (!joiner) return;
+
+    lobby.delete(joinerUserId);
+    io.to(joiner.socketId).emit('lobby-rejected');
+    console.log(`${joiner.userName} rejected from room ${roomId}`);
+  });
+
+  socket.on('kick-user', (roomId, targetUserId) => {
+    const users = roomUsers.get(roomId);
+    if (!users) return;
+
+    const target = users.get(targetUserId);
+    if (!target) return;
+
+    users.delete(targetUserId);
+    io.to(target.socketId).emit('user-kicked');
+    socket.to(roomId).emit('user-disconnected', targetUserId);
+    const allUsers = Array.from(users.values());
+    io.to(roomId).emit('room-users', allUsers);
+    console.log(`User ${target.userName} kicked from room ${roomId}`);
   });
 
   socket.on('toggle-mute', (roomId, userId, isMuted) => {
@@ -82,6 +139,7 @@ io.on('connection', (socket) => {
   socket.on('end-meeting', (roomId) => {
     io.to(roomId).emit('meeting-ended');
     roomUsers.delete(roomId);
+    roomLobby.delete(roomId);
   });
 
   socket.on('screen-share-started', (roomId, userId) => {
@@ -93,20 +151,56 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    for (const [roomId, users] of roomUsers) {
-      for (const [userId, data] of users) {
-        if (data.socketId === socket.id) {
-          users.delete(userId);
-          socket.to(roomId).emit('user-disconnected', userId);
-          
-          if (users.size === 0) {
-            roomUsers.delete(roomId);
+    const { roomId, userId } = socket.data || {};
+    if (!roomId || !userId) {
+      for (const [rid, users] of roomUsers) {
+        for (const [uid, data] of users) {
+          if (data.socketId === socket.id) {
+            users.delete(uid);
+            socket.to(rid).emit('user-disconnected', uid);
+            if (users.size === 0) roomUsers.delete(rid);
+            console.log('Socket disconnected:', socket.id);
+            return;
           }
-          return;
         }
       }
+      for (const [rid, lobby] of roomLobby) {
+        for (const [uid, data] of lobby) {
+          if (data.socketId === socket.id) {
+            lobby.delete(uid);
+            const users = roomUsers.get(rid);
+            if (users) {
+              const hostData = users.values().next().value;
+              if (hostData) io.to(hostData.socketId).emit('lobby-cancelled', uid);
+            }
+            if (lobby.size === 0 && (!roomUsers.has(rid) || roomUsers.get(rid).size === 0)) roomLobby.delete(rid);
+            return;
+          }
+        }
+      }
+      return;
     }
-    console.log('Socket disconnected:', socket.id);
+
+    if (roomUsers.has(roomId) && roomUsers.get(roomId).has(userId)) {
+      const userData = roomUsers.get(roomId).get(userId);
+      roomUsers.get(roomId).delete(userId);
+      socket.to(roomId).emit('user-disconnected', userId);
+      if (roomUsers.get(roomId).size === 0) {
+        roomUsers.delete(roomId);
+        roomLobby.delete(roomId);
+      }
+      console.log(`User ${userData.userName} disconnected from room ${roomId}`);
+    } else if (roomLobby.has(roomId) && roomLobby.get(roomId).has(userId)) {
+      const lobbyData = roomLobby.get(roomId).get(userId);
+      roomLobby.get(roomId).delete(userId);
+      const users = roomUsers.get(roomId);
+      if (users) {
+        const hostData = users.values().next().value;
+        if (hostData) io.to(hostData.socketId).emit('lobby-cancelled', userId);
+      }
+      if (roomLobby.get(roomId).size === 0) roomLobby.delete(roomId);
+      console.log(`${lobbyData.userName} left lobby for room ${roomId}`);
+    }
   });
 });
 
@@ -145,7 +239,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Debug endpoint — shows OAuth config (remove after debugging)
+// Debug endpoint
 app.get('/api/debug/oauth', (req, res) => {
   res.json({
     SERVER_URL: process.env.SERVER_URL || 'NOT SET',
@@ -157,7 +251,7 @@ app.get('/api/debug/oauth', (req, res) => {
   });
 });
 
-// Global error handler — prevents 500 crashes
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ message: 'Internal server error', error: err.message });
@@ -168,7 +262,7 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   let mongoUri = process.env.MONGODB_URI;
-  
+
   if (!mongoUri) {
     console.log('No MONGODB_URI found. Using in-memory database...');
     const mongod = await MongoMemoryServer.create();
@@ -181,8 +275,6 @@ async function startServer() {
   try {
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB Atlas');
-    
-    // Auto-create admin account if it doesn't exist
     const User = require('./models/User');
     const adminExists = await User.findOne({ email: 'admin@videoconf.com' });
     if (!adminExists) {
@@ -212,5 +304,3 @@ startServer().catch((err) => {
 });
 
 module.exports = { app, server, io };
-
-
