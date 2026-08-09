@@ -17,6 +17,12 @@ const Room = require('./models/Room');
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://voldemortmeet.vercel.app',
+  'http://localhost:5173'
+].filter(Boolean);
+
 // PeerJS Server
 const peerServer = ExpressPeerServer(server, {
   debug: process.env.NODE_ENV === 'development',
@@ -27,7 +33,7 @@ app.use('/peerjs', peerServer);
 // Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -195,12 +201,6 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'https://voldemortmeet.vercel.app',
-  'http://localhost:5173'
-].filter(Boolean);
-
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
