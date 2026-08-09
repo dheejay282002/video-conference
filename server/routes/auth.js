@@ -51,7 +51,7 @@ router.get('/google/callback', (req, res, next) => {
       maxAge: 24 * 60 * 60 * 1000,
       path: '/'
     });
-    return res.redirect(`${CLIENT_URL}/dashboard`);
+    return res.redirect(`${CLIENT_URL}/auth-callback?token=${token}`);
   })(req, res, next);
 });
 

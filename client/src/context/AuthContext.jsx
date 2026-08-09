@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.getMe();
       setUser(response.data);
     } catch (error) {
+      localStorage.removeItem('token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -32,12 +33,18 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
     setUser(response.data);
     return response.data;
   };
 
   const register = async (displayName, email, password) => {
     const response = await authAPI.register({ displayName, email, password });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
     setUser(response.data);
     return response.data;
   };
@@ -59,9 +66,11 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authAPI.logout();
+      localStorage.removeItem('token');
       setUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      localStorage.removeItem('token');
+      setUser(null);
     }
   };
 
