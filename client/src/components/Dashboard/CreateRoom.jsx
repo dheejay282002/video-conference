@@ -13,8 +13,8 @@ const CreateRoom = () => {
     if (!title.trim()) return;
     setLoading(true);
     try {
-      const response = await roomAPI.create({ title: title.trim() });
-      navigate(`/room/${response.data.room.roomCode}`);
+      const response = await roomAPI.createRoom(title.trim());
+      navigate(`/room/${response.data.roomCode}`);
     } catch (error) {
       console.error('Error creating room:', error);
       alert('Failed to create room');
