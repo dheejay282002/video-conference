@@ -12,9 +12,8 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => {
-    if (user?.email !== 'admin@videoconf.com') return;
     fetchData();
-  }, [user]);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -36,20 +35,6 @@ const AdminPanel = () => {
     try { await adminAPI.deleteRoom(roomId); setRooms(rooms.filter(r => r._id !== roomId)); }
     catch (error) { console.error('Error deleting room:', error); }
   };
-
-  if (user?.email !== 'admin@videoconf.com') {
-    return (
-      <div className="min-h-screen bg-surface-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-danger/10 flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-danger" />
-          </div>
-          <p className="text-xl font-semibold mb-4">Access Denied</p>
-          <Link to="/dashboard" className="btn-primary">Back to Dashboard</Link>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -138,7 +123,6 @@ const AdminPanel = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-semibold truncate">{u.displayName}</h4>
-                    {u.email === 'admin@videoconf.com' && <span className="badge-warning text-[10px]">Admin</span>}
                   </div>
                   <p className="text-sm text-surface-500 flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                   <p className="text-xs text-surface-400 flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3" />Joined {new Date(u.createdAt).toLocaleDateString()}</p>

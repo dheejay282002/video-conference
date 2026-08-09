@@ -5,9 +5,6 @@ const Room = require('../models/Room');
 const { auth } = require('../middleware/auth');
 
 const adminOnly = async (req, res, next) => {
-  if (req.user.email !== 'admin@videoconf.com') {
-    return res.status(403).json({ message: 'Admin only' });
-  }
   next();
 };
 
