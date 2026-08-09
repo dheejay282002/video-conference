@@ -18,6 +18,10 @@ const LoginPage = () => {
     const errorParam = searchParams.get('error');
     if (errorParam === 'google_not_registered') {
       setError('No account found with this Gmail. Please register with email/password first.');
+    } else if (errorParam === 'server_error') {
+      setError('Something went wrong with Google sign-in. Try again.');
+    } else if (errorParam) {
+      setError('Google sign-in failed. Please try again or use email/password.');
     }
   }, [searchParams]);
 

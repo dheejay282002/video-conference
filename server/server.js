@@ -94,15 +94,16 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     for (const [roomId, users] of roomUsers) {
-      if (users.has(socket.id)) {
-        const user = users.get(socket.id);
-        users.delete(socket.id);
-        socket.to(roomId).emit('user-disconnected', user.userId);
-        
-        if (users.size === 0) {
-          roomUsers.delete(roomId);
+      for (const [userId, data] of users) {
+        if (data.socketId === socket.id) {
+          users.delete(userId);
+          socket.to(roomId).emit('user-disconnected', userId);
+          
+          if (users.size === 0) {
+            roomUsers.delete(roomId);
+          }
+          return;
         }
-        break;
       }
     }
     console.log('Socket disconnected:', socket.id);
@@ -110,8 +111,20 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://voldemortmeet.vercel.app',
+  'http://localhost:5173'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -132,6 +145,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Global error handler — prevents 500 crashes
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(500).json({ message: 'Internal server error', error: err.message });
+});
+
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
@@ -150,6 +169,15 @@ async function startServer() {
   try {
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB Atlas');
+    
+    // Auto-create admin account if it doesn't exist
+    const User = require('./models/User');
+    const adminExists = await User.findOne({ email: 'admin@videoconf.com' });
+    if (!adminExists) {
+      const admin = new User({ displayName: 'Admin', email: 'admin@videoconf.com', password: 'admin123' });
+      await admin.save();
+      console.log('Admin account created: admin@videoconf.com / admin123');
+    }
   } catch (err) {
     console.error('MongoDB Atlas connection failed:', err.message);
     console.log('Falling back to in-memory database...');

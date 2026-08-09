@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
+  googleId: {
+    type: String,
+    default: null
+  },
   avatar: {
     type: String,
     default: ''

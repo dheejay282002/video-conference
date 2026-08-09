@@ -32,12 +32,27 @@ router.post('/avatar', auth, upload.single('avatar'), uploadAvatar);
 // Google OAuth - initiate
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// Google OAuth - callback
-router.get('/google/callback',
-  passport.authenticate('google', { 
-    failureRedirect: `${CLIENT_URL}/login?error=google_not_registered`,
-    successRedirect: `${CLIENT_URL}/dashboard`
-  })
-);
+// Google OAuth - callback with proper error handling
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', (err, user, info) => {
+    if (err) {
+      console.error('Google OAuth error:', err.message);
+      return res.redirect(`${CLIENT_URL}/login?error=server_error`);
+    }
+    if (!user) {
+      const msg = info?.message || 'google_not_registered';
+      return res.redirect(`${CLIENT_URL}/login?error=${encodeURIComponent(msg)}`);
+    }
+    const token = generateToken(user._id);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+    return res.redirect(`${CLIENT_URL}/dashboard`);
+  })(req, res, next);
+});
 
 module.exports = router;
